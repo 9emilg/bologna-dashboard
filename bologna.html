@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#0B0A08">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Bologna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0B0A08;
+  --surface: #111009;
+  --card: #1A1814;
+  --card2: #221F1A;
+  --border: #2A2520;
+  --border2: #38322B;
+  --red: #C41230;
+  --red2: #E01535;
+  --red-glow: rgba(196,18,48,0.18);
+  --text: #EDE8E0;
+  --muted: #7A7268;
+  --muted2: #4A4540;
+  --gold: #C8973A;
+  --green: #4CAF82;
+  --blue: #4A90D9;
+  --font-d: 'Cormorant Garamond', Georgia, serif;
+  --font-ui: 'Outfit', sans-serif;
+  --r: 12px;
+  --rs: 8px;
+  --t: 180ms ease;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size:15px;min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+.hdr{background:linear-gradient(140deg,#0F0D0A 0%,#13100D 60%,#0D0F15 100%);border-bottom:1px solid var(--border);padding:22px 18px 18px;position:relative;overflow:hidden}
+.hdr::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,var(--red-glow) 0%,transparent 65%);pointer-events:none}
+.hdr::after{content:'';position:absolute;bottom:-30px;left:20%;width:160px;height:160px;background:radial-gradient(circle,rgba(74,144,217,0.06) 0%,transparent 70%);pointer-events:none}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.unibo-badge{display:flex;align-items:center;gap:7px;background:var(--red);border-radius:5px;padding:5px 10px}
+.unibo-badge b{font-family:var(--font-d);font-weight:600;font-size:13px;letter-spacing:2.5px;color:#fff}
+.unibo-badge small{font-size:9px;color:rgba(255,255,255,0.55);font-weight:300;letter-spacing:1px}
+.hdr-btns{display:flex;gap:7px}
+.ibtn{background:var(--card);border:1px solid var(--border);border-radius:7px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:var(--t);color:var(--muted);flex-shrink:0}
+.ibtn:hover{background:var(--card2);color:var(--text)}
+.ibtn svg{width:16px;height:16px}
+.greeting{font-family:var(--font-d);font-size:30px;font-style:italic;font-weight:500;line-height:1.1;margin-bottom:3px;position:relative;z-index:1}
+.time-row{font-size:12px;color:var(--muted);font-weight:300;letter-spacing:0.3px}
+.time-row span{color:var(--text);font-weight:400}
+.cd-bar{margin-top:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);padding:11px 13px}
+.cd-label{font-size:10px;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:7px}
+.cd-track{background:var(--border);border-radius:3px;height:3px;overflow:hidden;margin-bottom:7px}
+.cd-fill{height:100%;background:linear-gradient(90deg,var(--red),#FF3D5A);border-radius:3px;transition:width 1s ease}
+.cd-bot{display:flex;justify-content:space-between;align-items:baseline}
+.cd-days{font-family:var(--font-d);font-size:21px;font-weight:600}
+.cd-days small{font-family:var(--font-ui);font-size:11px;color:var(--muted);font-weight:300;margin-left:3px}
+.cd-target{font-size:11px;color:var(--muted)}
+
+/* SYNC BAR */
+.sync-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:5px 16px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--muted2);flex-shrink:0}
+.sdot.ok{background:var(--green)}
+.sdot.busy{background:var(--gold);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* TABS */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:10}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1;min-width:52px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);font-size:9px;letter-spacing:0.8px;text-transform:uppercase;transition:var(--t);white-space:nowrap}
+.tab svg{width:17px;height:17px}
+.tab.active{color:var(--red);border-bottom-color:var(--red)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* CONTENT */
+.content{padding:14px 16px 24px;max-width:640px;margin:0 auto}
+
+/* SECTIONS */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;margin-top:2px}
+.sec-title{font-family:var(--font-d);font-size:22px;font-style:italic;font-weight:500}
+.add-btn{background:var(--red);border:none;border-radius:20px;padding:6px 14px;color:#fff;font-family:var(--font-ui);font-size:12px;font-weight:500;cursor:pointer;transition:var(--t)}
+.add-btn:hover{background:var(--red2)}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:13px;margin-bottom:9px;transition:var(--t);position:relative;overflow:hidden}
+.card:hover{border-color:var(--border2)}
+.card.urg{border-left:3px solid var(--red);padding-left:11px}
+.ctitle{font-weight:500;font-size:14px;margin-bottom:4px}
+.csub{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.cmeta{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+.cacts{position:absolute;top:8px;right:8px;display:flex;gap:4px;opacity:0;transition:var(--t)}
+.card:hover .cacts{opacity:1}
+.cact{background:var(--card2);border:1px solid var(--border2);border-radius:4px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:var(--muted);transition:var(--t)}
+.cact:hover{color:var(--text)}
+.cact.del:hover{color:#FF4444;border-color:rgba(255,68,68,0.3)}
+
+/* TAGS */
+.tag{display:inline-flex;align-items:center;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:500;letter-spacing:0.8px;text-transform:uppercase}
+.t-university{background:rgba(74,144,217,0.14);color:#4A90D9}
+.t-financial{background:rgba(200,151,58,0.14);color:var(--gold)}
+.t-housing{background:rgba(76,175,130,0.14);color:var(--green)}
+.t-personal{background:rgba(160,120,210,0.14);color:#A078D0}
+.t-admin{background:rgba(200,100,60,0.14);color:#C86040}
+
+/* DAYS BADGE */
+.dbadge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;padding:2px 6px;border-radius:5px;font-size:10px;font-weight:600}
+.dbadge.soon{background:rgba(196,18,48,0.18);color:#FF4060}
+.dbadge.near{background:rgba(200,151,58,0.18);color:var(--gold)}
+.dbadge.far{background:rgba(255,255,255,0.06);color:var(--muted)}
+.dbadge.past{background:rgba(76,175,130,0.14);color:var(--green)}
+
+/* OVERVIEW */
+.ov-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:13px}
+.stat-n{font-family:var(--font-d);font-size:28px;font-weight:600;line-height:1;margin-bottom:4px}
+.stat-l{font-size:10px;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase}
+.sc-red .stat-n{color:var(--red)}
+.sc-gold .stat-n{color:var(--gold)}
+.sc-green .stat-n{color:var(--green)}
+.sc-blue .stat-n{color:var(--blue)}
+
+.nextup{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:13px;margin-bottom:10px}
+.nu-label{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+.nu-row{padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.nu-row:last-child{border-bottom:none;padding-bottom:0}
+
+/* NOTES */
+.note-item{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
+.note-item:last-child{border-bottom:none}
+.ncheck{width:18px;height:18px;border:1.5px solid var(--border2);border-radius:4px;cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:10px;transition:var(--t)}
+.ncheck.on{background:var(--green);border-color:var(--green);color:#fff}
+.ntext{flex:1;font-size:14px;line-height:1.45;word-break:break-word}
+.ntext.x{text-decoration:line-through;color:var(--muted)}
+.ndate{font-size:10px;color:var(--muted2);margin-top:2px}
+
+/* CONTACTS */
+.cav{width:40px;height:40px;border-radius:50%;background:var(--card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:18px;font-weight:600;color:var(--red);flex-shrink:0}
+.crow{display:flex;align-items:center;gap:11px}
+
+/* DOCS */
+.doc-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.doc-row:last-child{border-bottom:none}
+.dcheck{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;transition:var(--t)}
+.dcheck.on{background:var(--green);border-color:var(--green);color:#fff}
+.dtxt{flex:1}
+.dtitle{font-size:14px;font-weight:400}
+.dtitle.x{text-decoration:line-through;color:var(--muted)}
+.dnote{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* SAVINGS */
+.sav-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:10px}
+.sav-amt{font-family:var(--font-d);font-size:42px;font-weight:600;line-height:1;margin-bottom:4px}
+.sav-cur{font-size:20px;color:var(--muted);margin-right:2px}
+.sav-tgt{font-size:12px;color:var(--muted);margin-bottom:16px}
+.sav-track{background:var(--border);border-radius:4px;height:5px;overflow:hidden;margin-bottom:7px}
+.sav-fill{height:100%;background:linear-gradient(90deg,var(--gold),#F0B845);border-radius:4px;transition:width .8s ease}
+.sav-info{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.sav-hint{margin-top:13px;padding:10px 12px;background:var(--card2);border-radius:var(--rs);font-size:12px;color:var(--muted)}
+
+/* INPUTS */
+input[type=text],input[type=tel],input[type=date],input[type=number],textarea,select{background:var(--bg);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:var(--font-ui);font-size:14px;padding:10px 11px;outline:none;width:100%;transition:var(--t)}
+input:focus,textarea:focus,select:focus{border-color:var(--red)}
+textarea{resize:vertical;min-height:80px}
+select{appearance:none;cursor:pointer}
+label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:0.5px}
+.fg{margin-bottom:13px}
+
+/* MODAL */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(5px);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 200ms ease}
+.ov.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px 18px 0 0;padding:22px 20px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;transform:translateY(100%);transition:transform 300ms cubic-bezier(.32,.72,0,1)}
+.ov.open .modal{transform:translateY(0)}
+.mhandle{width:34px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px}
+.mtitle{font-family:var(--font-d);font-size:21px;font-style:italic;margin-bottom:18px}
+.mbtns{display:flex;gap:9px;margin-top:18px}
+.btn-p{flex:1;background:var(--red);border:none;border-radius:var(--rs);color:#fff;font-family:var(--font-ui);font-size:14px;font-weight:500;padding:12px;cursor:pointer;transition:var(--t)}
+.btn-p:hover{background:var(--red2)}
+.btn-g{background:transparent;border:1px solid var(--border2);border-radius:var(--rs);color:var(--muted);font-family:var(--font-ui);font-size:14px;padding:12px 18px;cursor:pointer;transition:var(--t)}
+.btn-g:hover{color:var(--text);border-color:var(--border)}
+
+/* SETTINGS */
+.stitle{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:11px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.srow{padding:13px 0;border-bottom:1px solid var(--border)}
+.srow:last-child{border-bottom:none}
+.danger-btn{background:rgba(255,50,50,0.1);border:1px solid rgba(255,50,50,0.3);border-radius:var(--rs);color:#FF5050;font-family:var(--font-ui);font-size:13px;padding:11px 16px;cursor:pointer;transition:var(--t);width:100%}
+.danger-btn:hover{background:rgba(255,50,50,0.2)}
+
+/* EMPTY */
+.empty{text-align:center;padding:36px 20px;color:var(--muted)}
+.empty .ico{font-size:30px;margin-bottom:10px;opacity:0.35}
+.empty p{font-size:13px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* PAGE */
+.page{display:none}
+.page.on{display:block}
+
+/* DESKTOP */
+@media(min-width:600px){
+  .hdr{padding:28px 28px 22px}
+  .content{padding:20px 28px 28px}
+  .greeting{font-size:36px}
+  .ov-grid{grid-template-columns:repeat(4,1fr)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-top">
+    <div class="unibo-badge">
+      <b>UNIBO</b>
+      <small>· 1088</small>
+    </div>
+    <div class="hdr-btns">
+      <div class="ibtn" onclick="syncDrive()" title="Sync to Google Drive">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      </div>
+      <div class="ibtn" onclick="goTab('settings')" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </div>
+    </div>
+  </div>
+  <div id="greeting" class="greeting">Ciao, Emil.</div>
+  <div class="time-row" id="timeRow">–</div>
+  <div class="cd-bar" id="cdBar"></div>
+</div>
+
+<!-- SYNC BAR -->
+<div class="sync-bar"><div class="sdot" id="sdot"></div><span id="stxt">Not synced — tap ↻ to sync to Drive</span></div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab on" onclick="goTab('home')" data-t="home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
+  </div>
+  <div class="tab" onclick="goTab('dates')" data-t="dates">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Dates
+  </div>
+  <div class="tab" onclick="goTab('notes')" data-t="notes">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Notes
+  </div>
+  <div class="tab" onclick="goTab('contacts')" data-t="contacts">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>People
+  </div>
+  <div class="tab" onclick="goTab('docs')" data-t="docs">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Docs
+  </div>
+  <div class="tab" onclick="goTab('money')" data-t="money">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Money
+  </div>
+  <div class="tab" onclick="goTab('settings')" data-t="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>More
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+  <div id="p-home" class="page on"></div>
+  <div id="p-dates" class="page">
+    <div class="sec-hdr"><div class="sec-title">Important Dates</div><button class="add-btn" onclick="om('date')">+ Add</button></div>
+    <div id="dates-list"></div>
+  </div>
+  <div id="p-notes" class="page">
+    <div class="sec-hdr"><div class="sec-title">Notes</div><button class="add-btn" onclick="om('note')">+ Add</button></div>
+    <div class="card" id="notes-wrap"><div id="notes-list"></div></div>
+  </div>
+  <div id="p-contacts" class="page">
+    <div class="sec-hdr"><div class="sec-title">People</div><button class="add-btn" onclick="om('contact')">+ Add</button></div>
+    <div id="contacts-list"></div>
+  </div>
+  <div id="p-docs" class="page">
+    <div class="sec-hdr"><div class="sec-title">Documents</div><button class="add-btn" onclick="om('doc')">+ Add</button></div>
+    <div class="card"><div id="docs-list"></div></div>
+  </div>
+  <div id="p-money" class="page">
+    <div class="sec-title" style="margin-bottom:15px;margin-top:2px;">Savings Buffer</div>
+    <div id="money-content"></div>
+  </div>
+  <div id="p-settings" class="page">
+    <div class="sec-title" style="margin-bottom:18px;margin-top:2px;">Settings</div>
+    <div style="margin-bottom:22px">
+      <div class="stitle">General</div>
+      <div class="srow"><label>Move Date</label><input type="date" id="s-movedate" onchange="saveSettings()"></div>
+      <div class="srow"><label>Savings Target (€)</label><input type="number" id="s-target" placeholder="10000" onchange="saveSettings()"></div>
+    </div>
+    <div style="margin-bottom:22px">
+      <div class="stitle">Google Drive Sync</div>
+      <div class="srow">
+        <label>OAuth Client ID</label>
+        <input type="text" id="s-clientid" placeholder="xxxx.apps.googleusercontent.com" onchange="saveSettings()">
+        <p style="font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5;">Get this from <strong style="color:var(--text)">console.cloud.google.com</strong>:<br>Create project → Enable Drive API → OAuth 2.0 credentials (Web application type) → Add this file's URL as authorized JavaScript origin.</p>
+      </div>
+      <div style="margin-top:11px"><button class="btn-p" onclick="syncDrive()">Sync Now</button></div>
+    </div>
+    <div>
+      <div class="stitle">Data</div>
+      <div class="srow"><button class="danger-btn" onclick="doReset()">Reset All Data</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="ov" id="m-date" onclick="cmov(event,'date')">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">Add Date</div>
+    <div class="fg"><label>Title</label><input type="text" id="d-title" placeholder="e.g. Enrollment deadline"></div>
+    <div class="fg"><label>Date</label><input type="date" id="d-date"></div>
+    <div class="fg"><label>Category</label>
+      <select id="d-cat"><option value="university">University</option><option value="financial">Financial</option><option value="housing">Housing</option><option value="admin">Admin</option><option value="personal">Personal</option></select>
+    </div>
+    <div class="fg"><label>Note (optional)</label><textarea id="d-note" placeholder="Any details..."></textarea></div>
+    <div class="mbtns"><button class="btn-g" onclick="cm('date')">Cancel</button><button class="btn-p" onclick="saveDate()">Save</button></div>
+  </div>
+</div>
+
+<div class="ov" id="m-note" onclick="cmov(event,'note')">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">Add Note</div>
+    <div class="fg"><label>Note</label><textarea id="n-text" placeholder="What's on your mind..." style="min-height:110px"></textarea></div>
+    <div class="mbtns"><button class="btn-g" onclick="cm('note')">Cancel</button><button class="btn-p" onclick="saveNote()">Save</button></div>
+  </div>
+</div>
+
+<div class="ov" id="m-contact" onclick="cmov(event,'contact')">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">Add Contact</div>
+    <div class="fg"><label>Name</label><input type="text" id="c-name" placeholder="Full name"></div>
+    <div class="fg"><label>Phone</label><input type="tel" id="c-phone" placeholder="+39..."></div>
+    <div class="fg"><label>Notes</label><textarea id="c-notes" placeholder="Who are they, context..."></textarea></div>
+    <div class="mbtns"><button class="btn-g" onclick="cm('contact')">Cancel</button><button class="btn-p" onclick="saveContact()">Save</button></div>
+  </div>
+</div>
+
+<div class="ov" id="m-doc" onclick="cmov(event,'doc')">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">Add Document</div>
+    <div class="fg"><label>Document name</label><input type="text" id="doc-title" placeholder="e.g. Apartment lease"></div>
+    <div class="fg"><label>Note (optional)</label><input type="text" id="doc-note" placeholder="Where to get it, status..."></div>
+    <div class="mbtns"><button class="btn-g" onclick="cm('doc')">Cancel</button><button class="btn-p" onclick="saveDoc()">Save</button></div>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script>
+// ─── DEFAULTS ────────────────────────────────────────────
+const DEF_DATES=[
+  {id:'d1',title:'Test Calendar Published',date:'2026-08-26',category:'university',note:'Check Studenti Online for your slot and location'},
+  {id:'d2',title:'TOLC-SU Knowledge Test',date:'2026-09-02',category:'university',note:'Accesso libero — score may assign OFA but cannot block enrollment'},
+  {id:'d3',title:'Test Results Published',date:'2026-09-10',category:'university',note:''},
+  {id:'d4',title:'Enrollment Window Opens',date:'2026-09-11',category:'university',note:'Immatricolazione via Studenti Online + PagoPA first payment'},
+  {id:'d5',title:'ISEE Submission Deadline',date:'2026-10-30',category:'financial',note:'Submit foreign income docs via ER.GO online services by 18:00'},
+  {id:'d6',title:'ISEE Late Deadline (+€100)',date:'2026-11-16',category:'financial',note:'€100 surcharge applies if submitted after Oct 30'},
+  {id:'d7',title:'Final Enrollment Deadline',date:'2026-11-19',category:'university',note:'Missing this = excluded from enrollment. PagoPA payment required.'},
+  {id:'d8',title:'Career Activation Deadline',date:'2027-02-26',category:'university',note:'Identity verification — unlocks exam booking, course plan, certificates'},
+];
+const DEF_DOCS=[
+  {id:'dc1',title:'Bulgarian diploma (original)',done:false,note:'Keep original safe, make copies'},
+  {id:'dc2',title:'Diploma apostille',done:false,note:'Ministry of Education, Sofia'},
+  {id:'dc3',title:'Diploma — certified Italian translation',done:false,note:'Certified translator, required for Segreteria Studenti'},
+  {id:'dc4',title:'Passport (valid)',done:false,note:''},
+  {id:'dc5',title:'Codice fiscale',done:false,note:'Italian tax code — get at Agenzia delle Entrate or Italian consulate in Sofia'},
+  {id:'dc6',title:'Italian bank account',done:false,note:'Open after arrival, requires codice fiscale'},
+  {id:'dc7',title:'Italian SIM card',done:false,note:'TIM / Iliad / WindTre — get on arrival'},
+  {id:'dc8',title:'Apartment lease signed (Faenza)',done:false,note:'~€600/month — confirm before move'},
+  {id:'dc9',title:'ER.GO account registration',done:false,note:'ergostudenti.it — required for ISEE submission and financial aid'},
+  {id:'dc10',title:'PagoPA first tuition payment',done:false,note:'Required during enrollment Sep 11 – Nov 19'},
+  {id:'dc11',title:'TEAM / health insurance card',done:false,note:'European Health Insurance Card — valid in Italy as Bulgarian EU citizen'},
+  {id:'dc12',title:'Regional train pass (Faenza–Bologna)',done:false,note:'Trenitalia abbonamento regionale — buy after arrival'},
+];
+
+// ─── STATE ───────────────────────────────────────────────
+let S={
+  dates:[],contacts:[],notes:[],docs:[],
+  savings:{current:2500,target:10000},
+  cfg:{moveDate:'2026-08-25',clientId:''}
+};
+let driveFileId=null,accessToken=null;
+
+function load(){
+  const raw=localStorage.getItem('bologna_v3');
+  if(raw){try{S={...S,...JSON.parse(raw)}}catch(e){}}
+  else{S.dates=[...DEF_DATES];S.docs=[...DEF_DOCS];save()}
+}
+function save(){localStorage.setItem('bologna_v3',JSON.stringify(S))}
+
+// ─── HEADER ──────────────────────────────────────────────
+function tick(){
+  const tz='Europe/Rome';
+  const now=new Date();
+  const t=new Intl.DateTimeFormat('it-IT',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now);
+  const h=parseInt(new Intl.DateTimeFormat('it-IT',{timeZone:tz,hour:'2-digit',hour12:false}).format(now));
+  const dt=new Intl.DateTimeFormat('en-GB',{timeZone:tz,weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(now);
+  let g='Ciao, Emil.';
+  if(h>=5&&h<12)g='Buongiorno, Emil.';
+  else if(h>=12&&h<17)g='Buon pomeriggio, Emil.';
+  else if(h>=17&&h<22)g='Buona sera, Emil.';
+  else g='Buonanotte, Emil.';
+  document.getElementById('greeting').textContent=g;
+  document.getElementById('timeRow').innerHTML=`<span>${t}</span> Bologna · ${dt}`;
+  renderCD();
+}
+
+function renderCD(){
+  const md=new Date(S.cfg.moveDate+'T00:00:00');
+  const days=Math.ceil((md-new Date())/(864e5));
+  const ref=new Date('2026-01-01');
+  const tot=Math.ceil((md-ref)/(864e5));
+  const pct=Math.min(100,Math.max(0,((tot-Math.max(days,0))/tot)*100));
+  const el=document.getElementById('cdBar');
+  if(days>0){
+    el.innerHTML=`<div class="cd-label">Move countdown</div>
+    <div class="cd-track"><div class="cd-fill" style="width:${pct}%"></div></div>
+    <div class="cd-bot"><div class="cd-days">${days}<small>days to go</small></div>
+    <div class="cd-target">${fdate(S.cfg.moveDate)}</div></div>`;
+  }else{
+    el.innerHTML=`<div class="cd-label">You made it.</div>
+    <div class="cd-track"><div class="cd-fill" style="width:100%;background:var(--green)"></div></div>
+    <div class="cd-bot"><div class="cd-days" style="color:var(--green)">Day ${Math.abs(days)+1}<small>in Bologna</small></div></div>`;
+  }
+}
+
+// ─── TABS ────────────────────────────────────────────────
+let cur='home';
+function goTab(t){
+  document.querySelectorAll('.tab').forEach(el=>{el.classList.toggle('on',el.dataset.t===t)});
+  document.querySelectorAll('.page').forEach(el=>{el.classList.toggle('on',el.id===`p-${t}`)});
+  cur=t;
+  render(t);
+}
+function render(t){
+  switch(t){
+    case'home':rHome();break;
+    case'dates':rDates();break;
+    case'notes':rNotes();break;
+    case'contacts':rContacts();break;
+    case'docs':rDocs();break;
+    case'money':rMoney();break;
+    case'settings':rSettings();break;
+  }
+}
+
+// ─── HOME ────────────────────────────────────────────────
+function rHome(){
+  const dd=getDaysToMove();
+  const pct=S.savings.target>0?Math.round(S.savings.current/S.savings.target*100):0;
+  const done=S.docs.filter(d=>d.done).length;
+  const up=upcoming(4);
+  const el=document.getElementById('p-home');
+  el.innerHTML=`
+  <div class="ov-grid">
+    <div class="stat-card sc-red"><div class="stat-n">${dd>0?dd:'✓'}</div><div class="stat-l">Days to Move</div></div>
+    <div class="stat-card sc-gold"><div class="stat-n">${pct}%</div><div class="stat-l">Buffer</div></div>
+    <div class="stat-card sc-green"><div class="stat-n">${done}/${S.docs.length}</div><div class="stat-l">Docs Ready</div></div>
+    <div class="stat-card sc-blue"><div class="stat-n">${S.dates.filter(d=>daysTo(d.date)>=0&&daysTo(d.date)<=60).length}</div><div class="stat-l">Upcoming (60d)</div></div>
+  </div>
+  ${up.length?`<div class="nextup"><div class="nu-label">Next up</div>${up.map(d=>`
+    <div class="nu-row">
+      <div><div style="font-size:14px;font-weight:500">${d.title}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${fdate(d.date)}</div></div>
+      ${badge(daysTo(d.date))}
+    </div>`).join('')}</div>`:''}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+      <span style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase">Buffer</span>
+      <span style="font-family:var(--font-d);font-size:21px;font-weight:600">€${S.savings.current.toLocaleString()}</span>
+    </div>
+    <div class="sav-track"><div class="sav-fill" style="width:${Math.min(100,pct)}%"></div></div>
+    <div class="sav-info" style="margin-top:6px"><span>${pct}% of €${S.savings.target.toLocaleString()}</span><span>€${Math.max(0,S.savings.target-S.savings.current).toLocaleString()} left</span></div>
+  </div>`;
+}
+
+function getDaysToMove(){return Math.ceil((new Date(S.cfg.moveDate+'T00:00:00')-new Date())/864e5)}
+function daysTo(ds){return Math.ceil((new Date(ds+'T00:00:00')-new Date())/864e5)}
+function upcoming(n){return[...S.dates].filter(d=>daysTo(d.date)>=0).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,n)}
+function fdate(ds){return new Date(ds+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}
+function badge(d){
+  if(d<0)return`<span class="dbadge past">Past</span>`;
+  if(d===0)return`<span class="dbadge soon">Today</span>`;
+  if(d<=14)return`<span class="dbadge soon">${d}d</span>`;
+  if(d<=60)return`<span class="dbadge near">${d}d</span>`;
+  return`<span class="dbadge far">${d}d</span>`;
+}
+
+// ─── DATES ───────────────────────────────────────────────
+function rDates(){
+  const sorted=[...S.dates].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const el=document.getElementById('dates-list');
+  if(!sorted.length){el.innerHTML=`<div class="empty"><div class="ico">📅</div><p>No dates yet</p></div>`;return}
+  el.innerHTML=sorted.map(d=>{
+    const day=daysTo(d.date);
+    return`<div class="card ${day>=0&&day<=14?'urg':''}">
+      <div class="cacts"><div class="cact del" onclick="delDate('${d.id}')">✕</div></div>
+      <div class="ctitle">${d.title}</div>
+      <div class="csub"><span class="tag t-${d.category}">${d.category}</span>${fdate(d.date)}${badge(day)}</div>
+      ${d.note?`<div class="cmeta">${d.note}</div>`:''}
+    </div>`}).join('');
+}
+function saveDate(){
+  const t=document.getElementById('d-title').value.trim(),dt=document.getElementById('d-date').value;
+  if(!t||!dt)return;
+  S.dates.push({id:'d'+Date.now(),title:t,date:dt,category:document.getElementById('d-cat').value,note:document.getElementById('d-note').value.trim()});
+  save();cm('date');rDates();
+  ['d-title','d-date','d-note'].forEach(id=>document.getElementById(id).value='');
+}
+function delDate(id){S.dates=S.dates.filter(d=>d.id!==id);save();rDates();rHome()}
+
+// ─── NOTES ───────────────────────────────────────────────
+function rNotes(){
+  const el=document.getElementById('notes-list');
+  if(!S.notes.length){el.innerHTML=`<div class="empty" style="padding:18px 0"><p>No notes yet</p></div>`;return}
+  el.innerHTML=S.notes.map(n=>`
+    <div class="note-item">
+      <div class="ncheck ${n.done?'on':''}" onclick="togNote('${n.id}')">${n.done?'✓':''}</div>
+      <div style="flex:1">
+        <div class="ntext ${n.done?'x':''}">${n.text.replace(/\n/g,'<br>')}</div>
+        <div class="ndate">${new Date(n.ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>
+      </div>
+      <div class="cact del" onclick="delNote('${n.id}')" style="opacity:.45;flex-shrink:0">✕</div>
+    </div>`).join('');
+}
+function saveNote(){
+  const t=document.getElementById('n-text').value.trim();
+  if(!t)return;
+  S.notes.unshift({id:'n'+Date.now(),text:t,done:false,ts:Date.now()});
+  save();cm('note');rNotes();
+  document.getElementById('n-text').value='';
+}
+function togNote(id){const n=S.notes.find(n=>n.id===id);if(n){n.done=!n.done;save();rNotes()}}
+function delNote(id){S.notes=S.notes.filter(n=>n.id!==id);save();rNotes()}
+
+// ─── CONTACTS ────────────────────────────────────────────
+function rContacts(){
+  const el=document.getElementById('contacts-list');
+  if(!S.contacts.length){el.innerHTML=`<div class="empty"><div class="ico">👥</div><p>No contacts yet</p></div>`;return}
+  el.innerHTML=S.contacts.map(c=>`
+    <div class="card">
+      <div class="cacts"><div class="cact del" onclick="delContact('${c.id}')">✕</div></div>
+      <div class="crow">
+        <div class="cav">${c.name.charAt(0).toUpperCase()}</div>
+        <div>
+          <div class="ctitle">${c.name}</div>
+          <div class="csub">${c.phone?`<a href="tel:${c.phone}" style="color:var(--blue);text-decoration:none">${c.phone}</a>`:''}</div>
+          ${c.notes?`<div class="cmeta">${c.notes}</div>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+function saveContact(){
+  const n=document.getElementById('c-name').value.trim();
+  if(!n)return;
+  S.contacts.push({id:'c'+Date.now(),name:n,phone:document.getElementById('c-phone').value.trim(),notes:document.getElementById('c-notes').value.trim()});
+  save();cm('contact');rContacts();
+  ['c-name','c-phone','c-notes'].forEach(id=>document.getElementById(id).value='');
+}
+function delContact(id){S.contacts=S.contacts.filter(c=>c.id!==id);save();rContacts()}
+
+// ─── DOCS ────────────────────────────────────────────────
+function rDocs(){
+  const done=S.docs.filter(d=>d.done).length;
+  document.getElementById('docs-list').innerHTML=`
+    <div style="font-size:11px;color:var(--muted);margin-bottom:11px">${done}/${S.docs.length} complete</div>
+    ${S.docs.map(d=>`
+    <div class="doc-row" onclick="togDoc('${d.id}')">
+      <div class="dcheck ${d.done?'on':''}">${d.done?'✓':''}</div>
+      <div class="dtxt">
+        <div class="dtitle ${d.done?'x':''}">${d.title}</div>
+        ${d.note?`<div class="dnote">${d.note}</div>`:''}
+      </div>
+      <div class="cact del" onclick="event.stopPropagation();delDoc('${d.id}')" style="opacity:.35;flex-shrink:0">✕</div>
+    </div>`).join('')}`;
+}
+function saveDoc(){
+  const t=document.getElementById('doc-title').value.trim();
+  if(!t)return;
+  S.docs.push({id:'dc'+Date.now(),title:t,done:false,note:document.getElementById('doc-note').value.trim()});
+  save();cm('doc');rDocs();
+  ['doc-title','doc-note'].forEach(id=>document.getElementById(id).value='');
+}
+function togDoc(id){const d=S.docs.find(d=>d.id===id);if(d){d.done=!d.done;save();rDocs();if(cur==='home')rHome()}}
+function delDoc(id){S.docs=S.docs.filter(d=>d.id!==id);save();rDocs()}
+
+// ─── MONEY ───────────────────────────────────────────────
+function rMoney(){
+  const pct=S.savings.target>0?Math.min(100,Math.round(S.savings.current/S.savings.target*100)):0;
+  const rem=Math.max(0,S.savings.target-S.savings.current);
+  const days=getDaysToMove();
+  const perDay=days>0&&rem>0?Math.ceil(rem/days):0;
+  document.getElementById('money-content').innerHTML=`
+    <div class="sav-card">
+      <div class="sav-amt"><span class="sav-cur">€</span>${S.savings.current.toLocaleString()}</div>
+      <div class="sav-tgt">of €${S.savings.target.toLocaleString()} target</div>
+      <div class="sav-track"><div class="sav-fill" style="width:${pct}%"></div></div>
+      <div class="sav-info"><span>${pct}% there</span><span>€${rem.toLocaleString()} to go</span></div>
+      ${days>0&&rem>0?`<div class="sav-hint">Need <strong style="color:var(--gold)">€${perDay}/day</strong> to hit target by move date (${days} days)</div>`:''}
+    </div>
+    <div class="card">
+      <div class="ctitle" style="margin-bottom:12px">Update balance</div>
+      <label>Current savings (€)</label>
+      <div style="display:flex;gap:8px;margin-top:5px">
+        <input type="number" id="sav-input" value="${S.savings.current}" style="flex:1">
+        <button class="btn-p" onclick="updSav()" style="flex:0;padding:10px 15px">Save</button>
+      </div>
+    </div>`;
+}
+function updSav(){
+  const v=parseFloat(document.getElementById('sav-input').value);
+  if(!isNaN(v)&&v>=0){S.savings.current=v;save();rMoney();if(cur==='home')rHome()}
+}
+
+// ─── SETTINGS ────────────────────────────────────────────
+function rSettings(){
+  document.getElementById('s-movedate').value=S.cfg.moveDate;
+  document.getElementById('s-target').value=S.savings.target;
+  document.getElementById('s-clientid').value=S.cfg.clientId||'';
+}
+function saveSettings(){
+  S.cfg.moveDate=document.getElementById('s-movedate').value||'2026-08-25';
+  S.savings.target=parseFloat(document.getElementById('s-target').value)||10000;
+  S.cfg.clientId=document.getElementById('s-clientid').value.trim();
+  save();renderCD();
+}
+function doReset(){if(confirm('Reset everything? Cannot be undone.')){localStorage.removeItem('bologna_v3');location.reload()}}
+
+// ─── MODALS ──────────────────────────────────────────────
+function om(t){
+  document.getElementById(`m-${t}`).classList.add('open');
+  setTimeout(()=>{const f=document.querySelector(`#m-${t} input,#m-${t} textarea`);if(f)f.focus()},300);
+}
+function cm(t){document.getElementById(`m-${t}`).classList.remove('open')}
+function cmov(e,t){if(e.target===document.getElementById(`m-${t}`))cm(t)}
+
+// ─── GOOGLE DRIVE ─────────────────────────────────────────
+function setSS(cls,txt){document.getElementById('sdot').className='sdot '+cls;document.getElementById('stxt').textContent=txt}
+
+async function syncDrive(){
+  if(!S.cfg.clientId){alert('Add your Google OAuth Client ID in Settings first.');goTab('settings');return}
+  setSS('busy','Authenticating...');
+  try{
+    accessToken=await getToken(S.cfg.clientId);
+    setSS('busy','Searching Drive...');
+    const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name%3D'bologna-dashboard.json'%20and%20trashed%3Dfalse&fields=files(id)`,
+      {headers:{Authorization:`Bearer ${accessToken}`}});
+    const sd=await sr.json();
+    if(sd.files&&sd.files.length){
+      driveFileId=sd.files[0].id;
+      setSS('busy','Loading from Drive...');
+      const fr=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,
+        {headers:{Authorization:`Bearer ${accessToken}`}});
+      const fd=await fr.json();
+      S={...fd,cfg:{...fd.cfg,clientId:S.cfg.clientId}};
+      save();
+    }
+    setSS('busy','Uploading...');
+    await upload();
+    setSS('ok',`Synced ${new Date().toLocaleTimeString()}`);
+    render(cur);
+  }catch(err){setSS('','Sync failed: '+err.message);console.error(err)}
+}
+
+function getToken(cid){
+  return new Promise((res,rej)=>{
+    if(typeof google==='undefined'){rej(new Error('Google Identity Services not loaded'));return}
+    const tc=google.accounts.oauth2.initTokenClient({
+      client_id:cid,
+      scope:'https://www.googleapis.com/auth/drive.file',
+      callback:(r)=>{if(r.error)rej(new Error(r.error));else res(r.access_token)}
+    });
+    tc.requestAccessToken({prompt:''});
+  });
+}
+
+async function upload(){
+  const body=JSON.stringify(S);
+  const meta={name:'bologna-dashboard.json',mimeType:'application/json'};
+  const form=new FormData();
+  form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
+  form.append('file',new Blob([body],{type:'application/json'}));
+  const method=driveFileId?'PATCH':'POST';
+  const url=driveFileId
+    ?`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=multipart`
+    :`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+  const r=await fetch(url,{method,headers:{Authorization:`Bearer ${accessToken}`},body:form});
+  const j=await r.json();
+  if(j.id)driveFileId=j.id;
+}
+
+// ─── INIT ────────────────────────────────────────────────
+load();
+rHome();
+tick();
+setInterval(tick,1000);
+</script>
+</body>
+</html>
