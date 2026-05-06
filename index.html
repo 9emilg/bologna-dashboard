@@ -354,62 +354,61 @@ label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-s
   </div>
 </div>
 
+
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script>
-// ─── DEFAULTS ────────────────────────────────────────────
-const DEF_DATES=[
-  {id:'d1',title:'Test Calendar Published',date:'2026-08-26',category:'university',note:'Check Studenti Online for your slot and location'},
-  {id:'d2',title:'TOLC-SU Knowledge Test',date:'2026-09-02',category:'university',note:'Accesso libero — score may assign OFA but cannot block enrollment'},
-  {id:'d3',title:'Test Results Published',date:'2026-09-10',category:'university',note:''},
-  {id:'d4',title:'Enrollment Window Opens',date:'2026-09-11',category:'university',note:'Immatricolazione via Studenti Online + PagoPA first payment'},
-  {id:'d5',title:'ISEE Submission Deadline',date:'2026-10-30',category:'financial',note:'Submit foreign income docs via ER.GO online services by 18:00'},
-  {id:'d6',title:'ISEE Late Deadline (+€100)',date:'2026-11-16',category:'financial',note:'€100 surcharge applies if submitted after Oct 30'},
-  {id:'d7',title:'Final Enrollment Deadline',date:'2026-11-19',category:'university',note:'Missing this = excluded from enrollment. PagoPA payment required.'},
-  {id:'d8',title:'Career Activation Deadline',date:'2027-02-26',category:'university',note:'Identity verification — unlocks exam booking, course plan, certificates'},
-];
-const DEF_DOCS=[
-  {id:'dc1',title:'Bulgarian diploma (original)',done:false,note:'Keep original safe, make copies'},
-  {id:'dc2',title:'Diploma apostille',done:false,note:'Ministry of Education, Sofia'},
-  {id:'dc3',title:'Diploma — certified Italian translation',done:false,note:'Certified translator, required for Segreteria Studenti'},
-  {id:'dc4',title:'Passport (valid)',done:false,note:''},
-  {id:'dc5',title:'Codice fiscale',done:false,note:'Italian tax code — get at Agenzia delle Entrate or Italian consulate in Sofia'},
-  {id:'dc6',title:'Italian bank account',done:false,note:'Open after arrival, requires codice fiscale'},
-  {id:'dc7',title:'Italian SIM card',done:false,note:'TIM / Iliad / WindTre — get on arrival'},
-  {id:'dc8',title:'Apartment lease signed (Faenza)',done:false,note:'~€600/month — confirm before move'},
-  {id:'dc9',title:'ER.GO account registration',done:false,note:'ergostudenti.it — required for ISEE submission and financial aid'},
-  {id:'dc10',title:'PagoPA first tuition payment',done:false,note:'Required during enrollment Sep 11 – Nov 19'},
-  {id:'dc11',title:'TEAM / health insurance card',done:false,note:'European Health Insurance Card — valid in Italy as Bulgarian EU citizen'},
-  {id:'dc12',title:'Regional train pass (Faenza–Bologna)',done:false,note:'Trenitalia abbonamento regionale — buy after arrival'},
-];
-
 // ─── STATE ───────────────────────────────────────────────
 let S={
   dates:[],contacts:[],notes:[],docs:[],
-  savings:{current:0,target:10000},
-  cfg:{moveDate:'2026-08-25',clientId:''}
+  savings:{current:0,target:0},
+  cfg:{moveDate:'',clientId:''}
 };
 let driveFileId=null,accessToken=null;
 
 function load(){
   const raw=localStorage.getItem('bologna_v3');
-  if(!raw)return; // truly empty — show nothing
+  if(!raw)return;
   try{
     const p=JSON.parse(raw);
     S.dates=p.dates||[];
     S.contacts=p.contacts||[];
     S.notes=p.notes||[];
     S.docs=p.docs||[];
-    S.savings=p.savings||{current:0,target:10000};
-    S.cfg=p.cfg||{moveDate:'2026-08-25',clientId:''};
+    S.savings=p.savings||{current:0,target:0};
+    S.cfg=p.cfg||{moveDate:'',clientId:''};
     S._ts=p._ts||0;
   }catch(e){}
 }
-function loadDefaults(){
-  if(confirm('Load pre-filled Bologna dates and document checklist?')){
-    S.dates=[...DEF_DATES];S.docs=[...DEF_DOCS];save();rDates();rDocs();rHome();
+
+let pushTimer=null;
+function save(){
+  S._ts=Date.now();
+  localStorage.setItem('bologna_v3',JSON.stringify(S));
+  // Auto-push to Drive after every change (debounced 800ms)
+  if(S.cfg.clientId){
+    clearTimeout(pushTimer);
+    pushTimer=setTimeout(()=>pushToDrive(),800);
   }
 }
-function save(){S._ts=Date.now();localStorage.setItem('bologna_v3',JSON.stringify(S))}
+
+async function pushToDrive(){
+  if(!S.cfg.clientId)return;
+  try{
+    // Silent token refresh
+    accessToken=await getToken(S.cfg.clientId,true);
+    if(!driveFileId){
+      // Find file ID if we don't have it cached
+      const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name%3D'bologna-dashboard.json'%20and%20trashed%3Dfalse&fields=files(id)`,
+        {headers:{Authorization:`Bearer ${accessToken}`}});
+      const sd=await sr.json();
+      if(sd.files&&sd.files.length)driveFileId=sd.files[0].id;
+    }
+    await upload();
+    setSS('ok',`Saved ${new Date().toLocaleTimeString()}`);
+  }catch(e){
+    setSS('','Tap ↻ to sync');
+  }
+}
 
 // ─── HEADER ──────────────────────────────────────────────
 function tick(){
@@ -477,9 +476,8 @@ function rHome(){
   const el=document.getElementById('p-home');
   el.innerHTML=`
   ${isEmpty?`<div class="card" style="text-align:center;padding:24px 16px;margin-bottom:13px">
-    <div style="font-family:var(--font-d);font-size:20px;font-style:italic;margin-bottom:8px">Fresh start</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5">Load pre-filled Bologna deadlines<br>and document checklist to get started</div>
-    <button class="btn-p" onclick="loadDefaults()" style="width:auto;padding:10px 24px">Load Bologna defaults</button>
+    <div style="font-family:var(--font-d);font-size:20px;font-style:italic;margin-bottom:8px">No data yet</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.5">Tap ↻ to sync your data from Google Drive</div>
   </div>`:''}
   <div class="ov-grid">
     <div class="stat-card sc-red"><div class="stat-n">${dd>0?dd:'✓'}</div><div class="stat-l">Days to Move</div></div>
@@ -773,15 +771,51 @@ function setupPWA(){
 
 // ─── INIT ────────────────────────────────────────────────
 setupPWA();
-load();
-rHome();
 tick();
 setInterval(tick,1000);
-// Single auto-sync attempt on load (silent — won't prompt if session expired)
-window.addEventListener('load',()=>{
-  if(!S.cfg.clientId)return;
-  setTimeout(()=>syncDrive(false),1200);
-});
+
+// Boot: pull from Drive first, then render. Show loading until done.
+(async function boot(){
+  // Load clientId from localStorage (only cfg, not data)
+  const raw=localStorage.getItem('bologna_v3');
+  if(raw){try{const p=JSON.parse(raw);if(p.cfg)S.cfg=p.cfg;}catch(e){}}
+
+  if(!S.cfg.clientId){
+    // No client ID configured — show empty shell with settings prompt
+    document.getElementById('p-home').innerHTML=`
+      <div class="card" style="text-align:center;padding:32px 20px">
+        <div style="font-family:var(--font-d);font-size:22px;font-style:italic;margin-bottom:10px">Connect Google Drive</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6">Add your OAuth Client ID in Settings<br>to load your data.</div>
+        <button class="btn-p" onclick="goTab('settings')" style="padding:10px 24px;width:auto">Open Settings</button>
+      </div>`;
+    setSS('','Not configured — go to Settings');
+    rHome();tick();
+    return;
+  }
+
+  setSS('busy','Loading...');
+  try{
+    accessToken=await getToken(S.cfg.clientId,true);
+    const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name%3D'bologna-dashboard.json'%20and%20trashed%3Dfalse&fields=files(id)`,
+      {headers:{Authorization:`Bearer ${accessToken}`}});
+    const sd=await sr.json();
+    if(sd.files&&sd.files.length){
+      driveFileId=sd.files[0].id;
+      const fr=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,
+        {headers:{Authorization:`Bearer ${accessToken}`}});
+      const fd=await fr.json();
+      // Drive is authoritative on load
+      S={...fd,cfg:{...fd.cfg,clientId:S.cfg.clientId}};
+      localStorage.setItem('bologna_v3',JSON.stringify(S));
+    }
+    setSS('ok',`Loaded ${new Date().toLocaleTimeString()}`);
+  }catch(e){
+    // Silent auth failed — load from localStorage cache as fallback
+    load();
+    setSS('','Tap ↻ to sync');
+  }
+  rHome();
+})();
 </script>
 </body>
 </html>
