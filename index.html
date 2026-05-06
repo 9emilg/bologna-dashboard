@@ -648,7 +648,7 @@ async function syncDrive(){
   if(!S.cfg.clientId){alert('Add your Google OAuth Client ID in Settings first.');goTab('settings');return}
   setSS('busy','Authenticating...');
   try{
-    accessToken=await getToken(S.cfg.clientId);
+    accessToken=await getToken(S.cfg.clientId,false);
     setSS('busy','Searching Drive...');
     const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name%3D'bologna-dashboard.json'%20and%20trashed%3Dfalse&fields=files(id)`,
       {headers:{Authorization:`Bearer ${accessToken}`}});
@@ -669,15 +669,17 @@ async function syncDrive(){
   }catch(err){setSS('','Sync failed: '+err.message);console.error(err)}
 }
 
-function getToken(cid){
+let tokenClient=null;
+
+function getToken(cid,silent=false){
   return new Promise((res,rej)=>{
     if(typeof google==='undefined'){rej(new Error('Google Identity Services not loaded'));return}
-    const tc=google.accounts.oauth2.initTokenClient({
+    tokenClient=google.accounts.oauth2.initTokenClient({
       client_id:cid,
       scope:'https://www.googleapis.com/auth/drive.file',
       callback:(r)=>{if(r.error)rej(new Error(r.error));else res(r.access_token)}
     });
-    tc.requestAccessToken({prompt:''});
+    tokenClient.requestAccessToken({prompt:silent?'none':''});
   });
 }
 
@@ -696,11 +698,43 @@ async function upload(){
   if(j.id)driveFileId=j.id;
 }
 
+async function autoSync(){
+  if(!S.cfg.clientId)return;
+  setSS('busy','Syncing...');
+  try{
+    // Try silent first — works if Google session is still active
+    accessToken=await getToken(S.cfg.clientId,true);
+    const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name%3D'bologna-dashboard.json'%20and%20trashed%3Dfalse&fields=files(id)`,
+      {headers:{Authorization:`Bearer ${accessToken}`}});
+    const sd=await sr.json();
+    if(sd.files&&sd.files.length){
+      driveFileId=sd.files[0].id;
+      const fr=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,
+        {headers:{Authorization:`Bearer ${accessToken}`}});
+      const fd=await fr.json();
+      S={...fd,cfg:{...fd.cfg,clientId:S.cfg.clientId}};
+      save();
+    }
+    await upload();
+    setSS('ok',`Synced ${new Date().toLocaleTimeString()}`);
+    render(cur);
+  }catch(err){
+    // Silent auth failed — user needs to interact, show prompt
+    setSS('','Tap ↻ to sync');
+  }
+}
+
 // ─── INIT ────────────────────────────────────────────────
 load();
 rHome();
 tick();
 setInterval(tick,1000);
+// Auto-sync on load once Google script is ready
+(function waitForGoogle(attempts){
+  if(attempts<=0){setSS('','Tap ↻ to sync');return}
+  if(typeof google!=='undefined'&&S.cfg.clientId){autoSync()}
+  else if(S.cfg.clientId){setTimeout(()=>waitForGoogle(attempts-1),500)}
+})(10);
 </script>
 </body>
 </html>
