@@ -6,7 +6,8 @@
 <meta name="theme-color" content="#0B0A08">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Bologna</title>
+<title>Bologna Dashboard</title>
+<meta name="apple-mobile-web-app-title" content="Bologna">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -724,7 +725,50 @@ async function autoSync(){
   }
 }
 
+// ─── ICONS + MANIFEST ────────────────────────────────────
+function buildIcon(){
+  const c=document.createElement('canvas');
+  c.width=192;c.height=192;
+  const x=c.getContext('2d');
+  // Background
+  x.fillStyle='#0B0A08';
+  x.beginPath();x.roundRect(0,0,192,192,32);x.fill();
+  // Red circle
+  x.fillStyle='#C41230';
+  x.beginPath();x.arc(96,96,72,0,Math.PI*2);x.fill();
+  // White italic B
+  x.fillStyle='#FFFFFF';
+  x.font='italic bold 96px Georgia,serif';
+  x.textAlign='center';x.textBaseline='middle';
+  x.fillText('B',97,100);
+  return c.toDataURL('image/png');
+}
+
+function setupPWA(){
+  const icon=buildIcon();
+  // Favicon
+  let fav=document.querySelector("link[rel='icon']");
+  if(!fav){fav=document.createElement('link');document.head.appendChild(fav)}
+  fav.rel='icon';fav.type='image/png';fav.href=icon;
+  // Apple touch icon
+  let atl=document.querySelector("link[rel='apple-touch-icon']");
+  if(!atl){atl=document.createElement('link');document.head.appendChild(atl)}
+  atl.rel='apple-touch-icon';atl.href=icon;
+  // PWA manifest
+  const manifest={
+    name:'Bologna Dashboard',short_name:'Bologna',
+    start_url:'.',display:'standalone',
+    background_color:'#0B0A08',theme_color:'#C41230',
+    icons:[{src:icon,sizes:'192x192',type:'image/png'},{src:icon,sizes:'512x512',type:'image/png'}]
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+  let ml=document.querySelector("link[rel='manifest']");
+  if(!ml){ml=document.createElement('link');document.head.appendChild(ml)}
+  ml.rel='manifest';ml.href=URL.createObjectURL(blob);
+}
+
 // ─── INIT ────────────────────────────────────────────────
+setupPWA();
 load();
 rHome();
 tick();
