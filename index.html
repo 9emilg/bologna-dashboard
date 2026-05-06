@@ -392,10 +392,14 @@ let driveFileId=null,accessToken=null;
 
 function load(){
   const raw=localStorage.getItem('bologna_v3');
-  if(raw){try{S={...S,...JSON.parse(raw)}}catch(e){}}
-  else{S.dates=[...DEF_DATES];S.docs=[...DEF_DOCS];save()}
+  if(raw){try{const p=JSON.parse(raw);S={...S,...p}}catch(e){}}
 }
-function save(){localStorage.setItem('bologna_v3',JSON.stringify(S))}
+function loadDefaults(){
+  if(confirm('Load pre-filled Bologna dates and document checklist?')){
+    S.dates=[...DEF_DATES];S.docs=[...DEF_DOCS];save();rDates();rDocs();rHome();
+  }
+}
+function save(){S._ts=Date.now();localStorage.setItem('bologna_v3',JSON.stringify(S))}
 
 // ─── HEADER ──────────────────────────────────────────────
 function tick(){
@@ -459,8 +463,14 @@ function rHome(){
   const pct=S.savings.target>0?Math.round(S.savings.current/S.savings.target*100):0;
   const done=S.docs.filter(d=>d.done).length;
   const up=upcoming(4);
+  const isEmpty=!S.dates.length&&!S.docs.length&&!S.notes.length&&!S.contacts.length;
   const el=document.getElementById('p-home');
   el.innerHTML=`
+  ${isEmpty?`<div class="card" style="text-align:center;padding:24px 16px;margin-bottom:13px">
+    <div style="font-family:var(--font-d);font-size:20px;font-style:italic;margin-bottom:8px">Fresh start</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5">Load pre-filled Bologna deadlines<br>and document checklist to get started</div>
+    <button class="btn-p" onclick="loadDefaults()" style="width:auto;padding:10px 24px">Load Bologna defaults</button>
+  </div>`:''}
   <div class="ov-grid">
     <div class="stat-card sc-red"><div class="stat-n">${dd>0?dd:'✓'}</div><div class="stat-l">Days to Move</div></div>
     <div class="stat-card sc-gold"><div class="stat-n">${pct}%</div><div class="stat-l">Buffer</div></div>
@@ -644,34 +654,44 @@ function cmov(e,t){if(e.target===document.getElementById(`m-${t}`))cm(t)}
 
 // ─── GOOGLE DRIVE ─────────────────────────────────────────
 function setSS(cls,txt){document.getElementById('sdot').className='sdot '+cls;document.getElementById('stxt').textContent=txt}
+let syncing=false;
 
-async function syncDrive(){
-  if(!S.cfg.clientId){alert('Add your Google OAuth Client ID in Settings first.');goTab('settings');return}
-  setSS('busy','Authenticating...');
+async function syncDrive(manual=true){
+  if(syncing)return;
+  if(!S.cfg.clientId){if(manual){alert('Add your Google OAuth Client ID in Settings first.');goTab('settings')}return}
+  syncing=true;
+  setSS('busy',manual?'Syncing...':'Syncing...');
   try{
-    accessToken=await getToken(S.cfg.clientId,false);
-    setSS('busy','Searching Drive...');
+    accessToken=await getToken(S.cfg.clientId,!manual);
+    // Find file
     const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name%3D'bologna-dashboard.json'%20and%20trashed%3Dfalse&fields=files(id)`,
       {headers:{Authorization:`Bearer ${accessToken}`}});
     const sd=await sr.json();
     if(sd.files&&sd.files.length){
       driveFileId=sd.files[0].id;
-      setSS('busy','Loading from Drive...');
+      // Pull Drive data
       const fr=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,
         {headers:{Authorization:`Bearer ${accessToken}`}});
       const fd=await fr.json();
-      S={...fd,cfg:{...fd.cfg,clientId:S.cfg.clientId}};
-      save();
+      // Only replace local data if Drive is newer
+      const driveTs=fd._ts||0;
+      const localTs=S._ts||0;
+      if(driveTs>localTs){
+        S={...fd,cfg:{...fd.cfg,clientId:S.cfg.clientId}};
+        save();
+      }
     }
-    setSS('busy','Uploading...');
+    // Always push current state to Drive
     await upload();
     setSS('ok',`Synced ${new Date().toLocaleTimeString()}`);
     render(cur);
-  }catch(err){setSS('','Sync failed: '+err.message);console.error(err)}
+  }catch(err){
+    setSS('','Tap ↻ to sync');
+    if(manual)console.error(err);
+  }finally{syncing=false;}
 }
 
 let tokenClient=null;
-
 function getToken(cid,silent=false){
   return new Promise((res,rej)=>{
     if(typeof google==='undefined'){rej(new Error('Google Identity Services not loaded'));return}
@@ -697,32 +717,6 @@ async function upload(){
   const r=await fetch(url,{method,headers:{Authorization:`Bearer ${accessToken}`},body:form});
   const j=await r.json();
   if(j.id)driveFileId=j.id;
-}
-
-async function autoSync(){
-  if(!S.cfg.clientId)return;
-  setSS('busy','Syncing...');
-  try{
-    // Try silent first — works if Google session is still active
-    accessToken=await getToken(S.cfg.clientId,true);
-    const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name%3D'bologna-dashboard.json'%20and%20trashed%3Dfalse&fields=files(id)`,
-      {headers:{Authorization:`Bearer ${accessToken}`}});
-    const sd=await sr.json();
-    if(sd.files&&sd.files.length){
-      driveFileId=sd.files[0].id;
-      const fr=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,
-        {headers:{Authorization:`Bearer ${accessToken}`}});
-      const fd=await fr.json();
-      S={...fd,cfg:{...fd.cfg,clientId:S.cfg.clientId}};
-      save();
-    }
-    await upload();
-    setSS('ok',`Synced ${new Date().toLocaleTimeString()}`);
-    render(cur);
-  }catch(err){
-    // Silent auth failed — user needs to interact, show prompt
-    setSS('','Tap ↻ to sync');
-  }
 }
 
 // ─── ICONS + MANIFEST ────────────────────────────────────
@@ -773,12 +767,11 @@ load();
 rHome();
 tick();
 setInterval(tick,1000);
-// Auto-sync on load once Google script is ready
-(function waitForGoogle(attempts){
-  if(attempts<=0){setSS('','Tap ↻ to sync');return}
-  if(typeof google!=='undefined'&&S.cfg.clientId){autoSync()}
-  else if(S.cfg.clientId){setTimeout(()=>waitForGoogle(attempts-1),500)}
-})(10);
+// Single auto-sync attempt on load (silent — won't prompt if session expired)
+window.addEventListener('load',()=>{
+  if(!S.cfg.clientId)return;
+  setTimeout(()=>syncDrive(false),1200);
+});
 </script>
 </body>
 </html>
