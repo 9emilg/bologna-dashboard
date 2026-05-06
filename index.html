@@ -357,57 +357,76 @@ label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-s
 
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script>
-// ─── STATE ───────────────────────────────────────────────
-let S={
-  dates:[],contacts:[],notes:[],docs:[],
-  savings:{current:0,target:0},
-  cfg:{moveDate:'',clientId:''}
-};
-let driveFileId=null,accessToken=null;
+// ─── STATE — no personal data in source ──────────────────
+let S={dates:[],contacts:[],notes:[],docs:[],savings:{current:0,target:0},cfg:{moveDate:'',clientId:''}};
+let driveFileId=null,token=null,writeTimer=null;
+function getClientId(){return localStorage.getItem('bcid')||''}
+function setClientId(id){localStorage.setItem('bcid',id);S.cfg.clientId=id;}
 
-function load(){
-  const raw=localStorage.getItem('bologna_v3');
-  if(!raw)return;
-  try{
-    const p=JSON.parse(raw);
-    S.dates=p.dates||[];
-    S.contacts=p.contacts||[];
-    S.notes=p.notes||[];
-    S.docs=p.docs||[];
-    S.savings=p.savings||{current:0,target:0};
-    S.cfg=p.cfg||{moveDate:'',clientId:''};
-    S._ts=p._ts||0;
-  }catch(e){}
+// ─── DRIVE ───────────────────────────────────────────────
+function setSS(cls,txt){document.getElementById('sdot').className='sdot '+cls;document.getElementById('stxt').textContent=txt}
+let tokenClient=null;
+function requestToken(silent){
+  return new Promise((res,rej)=>{
+    if(typeof google==='undefined'){rej(new Error('GIS not loaded'));return}
+    tokenClient=google.accounts.oauth2.initTokenClient({
+      client_id:getClientId(),
+      scope:'https://www.googleapis.com/auth/drive.file',
+      callback:(r)=>{if(r.error)rej(new Error(r.error));else{token=r.access_token;res(r.access_token)}}
+    });
+    tokenClient.requestAccessToken({prompt:silent?'none':''});
+  });
 }
-
-let pushTimer=null;
-function save(){
-  S._ts=Date.now();
-  localStorage.setItem('bologna_v3',JSON.stringify(S));
-  // Auto-push to Drive after every change (debounced 800ms)
-  if(S.cfg.clientId){
-    clearTimeout(pushTimer);
-    pushTimer=setTimeout(()=>pushToDrive(),800);
-  }
+async function findFile(){
+  if(driveFileId)return;
+  const r=await fetch(`https://www.googleapis.com/drive/v3/files?q=name%3D'bologna-dashboard.json'%20and%20trashed%3Dfalse&fields=files(id)`,
+    {headers:{Authorization:`Bearer ${token}`}});
+  const d=await r.json();
+  if(d.files&&d.files.length)driveFileId=d.files[0].id;
 }
-
-async function pushToDrive(){
-  if(!S.cfg.clientId)return;
+async function readDrive(){
+  await findFile();
+  if(!driveFileId)return null;
+  const r=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,
+    {headers:{Authorization:`Bearer ${token}`}});
+  return await r.json();
+}
+async function writeDrive(){
+  if(!token){setSS('warn','Session expired — tap ↻');return;}
   try{
-    // Silent token refresh
-    accessToken=await getToken(S.cfg.clientId,true);
-    if(!driveFileId){
-      // Find file ID if we don't have it cached
-      const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name%3D'bologna-dashboard.json'%20and%20trashed%3Dfalse&fields=files(id)`,
-        {headers:{Authorization:`Bearer ${accessToken}`}});
-      const sd=await sr.json();
-      if(sd.files&&sd.files.length)driveFileId=sd.files[0].id;
-    }
-    await upload();
+    await findFile();
+    const meta={name:'bologna-dashboard.json',mimeType:'application/json'};
+    const form=new FormData();
+    form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
+    form.append('file',new Blob([JSON.stringify(S)],{type:'application/json'}));
+    const method=driveFileId?'PATCH':'POST';
+    const url=driveFileId
+      ?`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=multipart`
+      :`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+    const r=await fetch(url,{method,headers:{Authorization:`Bearer ${token}`},body:form});
+    const j=await r.json();
+    if(j.id)driveFileId=j.id;
     setSS('ok',`Saved ${new Date().toLocaleTimeString()}`);
-  }catch(e){
-    setSS('','Tap ↻ to sync');
-  }
+  }catch(e){setSS('warn','Save failed — tap ↻');}
+}
+// Every UI change calls save() — debounced 600ms then writes to Drive
+function save(){
+  clearTimeout(writeTimer);
+  writeTimer=setTimeout(writeDrive,600);
+}
+// Manual ↻ — always works even if token expired
+async function syncDrive(){
+  const cid=getClientId();
+  if(!cid){alert('Add your OAuth Client ID in Settings first.');goTab('settings');return;}
+  setSS('busy','Connecting...');
+  try{
+    await requestToken(false);
+    setSS('busy','Loading...');
+    const data=await readDrive();
+    if(data)S={...data,cfg:{...data.cfg,clientId:cid}};
+    await writeDrive();
+    render(cur);
+  }catch(e){setSS('','Connection failed');console.error(e);}
 }
 
 // ─── HEADER ──────────────────────────────────────────────
@@ -640,17 +659,18 @@ function updSav(){
 
 // ─── SETTINGS ────────────────────────────────────────────
 function rSettings(){
-  document.getElementById('s-movedate').value=S.cfg.moveDate;
-  document.getElementById('s-target').value=S.savings.target;
-  document.getElementById('s-clientid').value=S.cfg.clientId||'';
+  document.getElementById('s-movedate').value=S.cfg.moveDate||'';
+  document.getElementById('s-target').value=S.savings.target||'';
+  document.getElementById('s-clientid').value=getClientId();
 }
 function saveSettings(){
-  S.cfg.moveDate=document.getElementById('s-movedate').value||'2026-08-25';
-  S.savings.target=parseFloat(document.getElementById('s-target').value)||10000;
-  S.cfg.clientId=document.getElementById('s-clientid').value.trim();
+  S.cfg.moveDate=document.getElementById('s-movedate').value||'';
+  S.savings.target=parseFloat(document.getElementById('s-target').value)||0;
+  const cid=document.getElementById('s-clientid').value.trim();
+  setClientId(cid);
   save();renderCD();
 }
-function doReset(){if(confirm('Reset everything? Cannot be undone.')){localStorage.removeItem('bologna_v3');location.reload()}}
+function doReset(){if(confirm('Reset everything?')){localStorage.clear();location.reload()}}
 
 // ─── MODALS ──────────────────────────────────────────────
 function om(t){
@@ -660,161 +680,61 @@ function om(t){
 function cm(t){document.getElementById(`m-${t}`).classList.remove('open')}
 function cmov(e,t){if(e.target===document.getElementById(`m-${t}`))cm(t)}
 
-// ─── GOOGLE DRIVE ─────────────────────────────────────────
-function setSS(cls,txt){document.getElementById('sdot').className='sdot '+cls;document.getElementById('stxt').textContent=txt}
-let syncing=false;
-
-async function syncDrive(manual=true){
-  if(syncing)return;
-  if(!S.cfg.clientId){if(manual){alert('Add your Google OAuth Client ID in Settings first.');goTab('settings')}return}
-  syncing=true;
-  setSS('busy',manual?'Syncing...':'Syncing...');
-  try{
-    accessToken=await getToken(S.cfg.clientId,!manual);
-    // Find file
-    const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name%3D'bologna-dashboard.json'%20and%20trashed%3Dfalse&fields=files(id)`,
-      {headers:{Authorization:`Bearer ${accessToken}`}});
-    const sd=await sr.json();
-    if(sd.files&&sd.files.length){
-      driveFileId=sd.files[0].id;
-      // Pull Drive data
-      const fr=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,
-        {headers:{Authorization:`Bearer ${accessToken}`}});
-      const fd=await fr.json();
-      // Only replace local data if Drive is newer
-      const driveTs=fd._ts||0;
-      const localTs=S._ts||0;
-      if(driveTs>localTs){
-        S={...fd,cfg:{...fd.cfg,clientId:S.cfg.clientId}};
-        save();
-      }
-    }
-    // Always push current state to Drive
-    await upload();
-    setSS('ok',`Synced ${new Date().toLocaleTimeString()}`);
-    render(cur);
-  }catch(err){
-    setSS('','Tap ↻ to sync');
-    if(manual)console.error(err);
-  }finally{syncing=false;}
-}
-
-let tokenClient=null;
-function getToken(cid,silent=false){
-  return new Promise((res,rej)=>{
-    if(typeof google==='undefined'){rej(new Error('Google Identity Services not loaded'));return}
-    tokenClient=google.accounts.oauth2.initTokenClient({
-      client_id:cid,
-      scope:'https://www.googleapis.com/auth/drive.file',
-      callback:(r)=>{if(r.error)rej(new Error(r.error));else res(r.access_token)}
-    });
-    tokenClient.requestAccessToken({prompt:silent?'none':''});
-  });
-}
-
-async function upload(){
-  const body=JSON.stringify(S);
-  const meta={name:'bologna-dashboard.json',mimeType:'application/json'};
-  const form=new FormData();
-  form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
-  form.append('file',new Blob([body],{type:'application/json'}));
-  const method=driveFileId?'PATCH':'POST';
-  const url=driveFileId
-    ?`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=multipart`
-    :`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
-  const r=await fetch(url,{method,headers:{Authorization:`Bearer ${accessToken}`},body:form});
-  const j=await r.json();
-  if(j.id)driveFileId=j.id;
-}
-
 // ─── ICONS + MANIFEST ────────────────────────────────────
 function buildIcon(){
-  const c=document.createElement('canvas');
-  c.width=192;c.height=192;
+  const c=document.createElement('canvas');c.width=192;c.height=192;
   const x=c.getContext('2d');
-  // Background
-  x.fillStyle='#0B0A08';
-  x.beginPath();x.roundRect(0,0,192,192,32);x.fill();
-  // Red circle
-  x.fillStyle='#C41230';
-  x.beginPath();x.arc(96,96,72,0,Math.PI*2);x.fill();
-  // White italic B
-  x.fillStyle='#FFFFFF';
-  x.font='italic bold 96px Georgia,serif';
-  x.textAlign='center';x.textBaseline='middle';
-  x.fillText('B',97,100);
+  x.fillStyle='#0B0A08';x.beginPath();x.roundRect(0,0,192,192,32);x.fill();
+  x.fillStyle='#C41230';x.beginPath();x.arc(96,96,72,0,Math.PI*2);x.fill();
+  x.fillStyle='#FFFFFF';x.font='italic bold 96px Georgia,serif';
+  x.textAlign='center';x.textBaseline='middle';x.fillText('B',97,100);
   return c.toDataURL('image/png');
 }
-
 function setupPWA(){
   const icon=buildIcon();
-  // Favicon
-  let fav=document.querySelector("link[rel='icon']");
-  if(!fav){fav=document.createElement('link');document.head.appendChild(fav)}
+  let fav=document.querySelector("link[rel='icon']");if(!fav){fav=document.createElement('link');document.head.appendChild(fav)}
   fav.rel='icon';fav.type='image/png';fav.href=icon;
-  // Apple touch icon
-  let atl=document.querySelector("link[rel='apple-touch-icon']");
-  if(!atl){atl=document.createElement('link');document.head.appendChild(atl)}
+  let atl=document.querySelector("link[rel='apple-touch-icon']");if(!atl){atl=document.createElement('link');document.head.appendChild(atl)}
   atl.rel='apple-touch-icon';atl.href=icon;
-  // PWA manifest
-  const manifest={
-    name:'Bologna Dashboard',short_name:'Bologna',
-    start_url:'.',display:'standalone',
+  const manifest={name:'Bologna Dashboard',short_name:'Bologna',start_url:'.',display:'standalone',
     background_color:'#0B0A08',theme_color:'#C41230',
-    icons:[{src:icon,sizes:'192x192',type:'image/png'},{src:icon,sizes:'512x512',type:'image/png'}]
-  };
+    icons:[{src:icon,sizes:'192x192',type:'image/png'},{src:icon,sizes:'512x512',type:'image/png'}]};
   const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
-  let ml=document.querySelector("link[rel='manifest']");
-  if(!ml){ml=document.createElement('link');document.head.appendChild(ml)}
+  let ml=document.querySelector("link[rel='manifest']");if(!ml){ml=document.createElement('link');document.head.appendChild(ml)}
   ml.rel='manifest';ml.href=URL.createObjectURL(blob);
 }
 
 // ─── INIT ────────────────────────────────────────────────
-setupPWA();
-tick();
-setInterval(tick,1000);
+setupPWA();tick();setInterval(tick,1000);
 
-// Boot: pull from Drive first, then render. Show loading until done.
+function showSignIn(msg){
+  document.getElementById('p-home').innerHTML=`
+    <div class="card" style="text-align:center;padding:48px 20px;margin-top:8px">
+      <div style="font-family:var(--font-d);font-size:30px;font-style:italic;margin-bottom:12px">Bologna Dashboard</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6">${msg||'Sign in with Google to load your data.'}</div>
+      <button class="btn-p" onclick="syncDrive()" style="padding:13px 36px;width:auto;font-size:15px">Sign in with Google</button>
+    </div>`;
+}
+
 (async function boot(){
-  // Load clientId from localStorage (only cfg, not data)
-  const raw=localStorage.getItem('bologna_v3');
-  if(raw){try{const p=JSON.parse(raw);if(p.cfg)S.cfg=p.cfg;}catch(e){}}
-
+  S.cfg.clientId=getClientId();
   if(!S.cfg.clientId){
-    // No client ID configured — show empty shell with settings prompt
-    document.getElementById('p-home').innerHTML=`
-      <div class="card" style="text-align:center;padding:32px 20px">
-        <div style="font-family:var(--font-d);font-size:22px;font-style:italic;margin-bottom:10px">Connect Google Drive</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6">Add your OAuth Client ID in Settings<br>to load your data.</div>
-        <button class="btn-p" onclick="goTab('settings')" style="padding:10px 24px;width:auto">Open Settings</button>
-      </div>`;
-    setSS('','Not configured — go to Settings');
-    rHome();tick();
+    showSignIn('Open Settings (⚙) and add your OAuth Client ID first.');
+    setSS('','Not configured');
     return;
   }
-
-  setSS('busy','Loading...');
+  setSS('busy','Connecting...');
   try{
-    accessToken=await getToken(S.cfg.clientId,true);
-    const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name%3D'bologna-dashboard.json'%20and%20trashed%3Dfalse&fields=files(id)`,
-      {headers:{Authorization:`Bearer ${accessToken}`}});
-    const sd=await sr.json();
-    if(sd.files&&sd.files.length){
-      driveFileId=sd.files[0].id;
-      const fr=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,
-        {headers:{Authorization:`Bearer ${accessToken}`}});
-      const fd=await fr.json();
-      // Drive is authoritative on load
-      S={...fd,cfg:{...fd.cfg,clientId:S.cfg.clientId}};
-      localStorage.setItem('bologna_v3',JSON.stringify(S));
-    }
+    await requestToken(true);
+    setSS('busy','Loading...');
+    const data=await readDrive();
+    if(data)S={...data,cfg:{...data.cfg,clientId:S.cfg.clientId}};
     setSS('ok',`Loaded ${new Date().toLocaleTimeString()}`);
+    rHome();
   }catch(e){
-    // Silent auth failed — load from localStorage cache as fallback
-    load();
-    setSS('','Tap ↻ to sync');
+    showSignIn();
+    setSS('','Tap Sign in or ↻ to connect');
   }
-  rHome();
 })();
 </script>
 </body>
