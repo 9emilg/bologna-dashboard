@@ -385,14 +385,24 @@ const DEF_DOCS=[
 // ─── STATE ───────────────────────────────────────────────
 let S={
   dates:[],contacts:[],notes:[],docs:[],
-  savings:{current:2500,target:10000},
+  savings:{current:0,target:10000},
   cfg:{moveDate:'2026-08-25',clientId:''}
 };
 let driveFileId=null,accessToken=null;
 
 function load(){
   const raw=localStorage.getItem('bologna_v3');
-  if(raw){try{const p=JSON.parse(raw);S={...S,...p}}catch(e){}}
+  if(!raw)return; // truly empty — show nothing
+  try{
+    const p=JSON.parse(raw);
+    S.dates=p.dates||[];
+    S.contacts=p.contacts||[];
+    S.notes=p.notes||[];
+    S.docs=p.docs||[];
+    S.savings=p.savings||{current:0,target:10000};
+    S.cfg=p.cfg||{moveDate:'2026-08-25',clientId:''};
+    S._ts=p._ts||0;
+  }catch(e){}
 }
 function loadDefaults(){
   if(confirm('Load pre-filled Bologna dates and document checklist?')){
